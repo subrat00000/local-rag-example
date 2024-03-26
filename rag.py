@@ -8,6 +8,7 @@ from langchain.schema.runnable import RunnablePassthrough
 from langchain.prompts import PromptTemplate
 from langchain.vectorstores.utils import filter_complex_metadata
 from qdrant_client import QdrantClient
+from qdrant_client.http.models import VectorParams,Distance
 from sentence_transformers import SentenceTransformer
 
 class ChatPDF:
@@ -22,6 +23,7 @@ class ChatPDF:
         self.model = ChatOllama(model="mistral",base_url="https://ec7d-34-171-191-121.ngrok-free.app")
         self.client = QdrantClient(url="https://2f855f0f-1a16-435e-b0c6-6778fab46d1b.us-east4-0.gcp.cloud.qdrant.io",api_key="WiPEu3ZkXJg-n2KH9nhEZtPvvrWq9VOBUmQy9VS2Tb8TZzY5bFAQ2w")
         self.qdrant = Qdrant(client=self.client,collection_name="mosaic",embeddings=self.embeddings)
+        self.client.create_collection(collection_name="mosaic",vectors_config=VectorParams(size=768, distance=Distance.COSINE),)
         self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=100)
         self.prompt = PromptTemplate.from_template(
             """
