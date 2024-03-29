@@ -10,6 +10,10 @@ from langchain.vectorstores.utils import filter_complex_metadata
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import VectorParams,Distance
 from ollama import Client
+from fastapi import FastAPI, File, UploadFile, HTTPException,BackgroundTasks
+import os
+
+app = FastAPI()
 
 class ChatPDF:
     vector_store = None
@@ -18,7 +22,7 @@ class ChatPDF:
     embeddings = HuggingFaceEmbeddings(
         model_name="sentence-transformers/all-mpnet-base-v2"
     )
-    ollama_url = "https://aae4-104-155-141-44.ngrok-free.app"
+    ollama_url = "https://7d7b-34-121-115-168.ngrok-free.app"
     qdrant_url= "https://2f855f0f-1a16-435e-b0c6-6778fab46d1b.us-east4-0.gcp.cloud.qdrant.io"
     qdrant_api_key="WiPEu3ZkXJg-n2KH9nhEZtPvvrWq9VOBUmQy9VS2Tb8TZzY5bFAQ2w"
 
@@ -76,3 +80,29 @@ class ChatPDF:
         self.vector_store = None
         self.retriever = None
         self.chain = None
+
+chat_pdf = ChatPDF()
+
+@app.post("/upload")
+async def upload_pdf(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
+    try:
+        os.makedirs("temp", exist_ok=True)
+        file_path = f"temp/{file.filename}"
+        
+        with open(file_path, "wb") as f:
+            f.write(await file.read())
+        background_tasks.add_task(chat_pdf.ingest(file_path))
+        
+        return {"filename": file.filename}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+
+@app.get("/ask")
+async def ask_question(query: str):
+    response = chat_pdf.ask(query)
+    return {"response": response}
+
+@app.get("/clear/")
+async def clear_cache():
+    chat_pdf.clear()
+    return {"message": "Cache cleared successfully."}
