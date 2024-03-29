@@ -91,14 +91,15 @@ async def upload_pdf(background_tasks: BackgroundTasks, file: UploadFile = File(
         
         with open(file_path, "wb") as f:
             f.write(await file.read())
-        background_tasks.add_task(chat_pdf.ingest(file_path))
+
+        background_tasks.add_task(chat_pdf.ingest,file_path)
         
         return {"filename": file.filename}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
 
 @app.get("/ask")
-async def ask_question(query: str):
+def ask_question(query: str):
     response = chat_pdf.ask(query)
     return {"response": response}
 
